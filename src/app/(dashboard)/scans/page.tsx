@@ -1,6 +1,8 @@
 // src/app/(dashboard)/scans/page.tsx
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,35 +16,42 @@ import {
 import { StatusPill } from "@/components/common/StatusPill";
 import { ScanLine, Filter } from "lucide-react";
 
-const mockScans = [
-  {
-    id: "scan-1",
-    appName: "Example Web",
-    appUrl: "https://example.com",
-    score: 88,
-    status: "pass" as const,
-    createdAt: "2 hours ago",
-  },
-  {
-    id: "scan-2",
-    appName: "College Portal",
-    appUrl: "https://portal.college.in",
-    score: 73,
-    status: "warning" as const,
-    createdAt: "1 day ago",
-  },
-  {
-    id: "scan-3",
-    appName: "Internal Dashboard",
-    appUrl: "https://internal.app",
-    score: 59,
-    status: "fail" as const,
-    createdAt: "3 days ago",
-  },
-];
+interface ScanListItem {
+  id: string;
+  appName: string;
+  appUrl: string;
+  score: number;
+  status: "pass" | "warning" | "fail";
+  createdAt: string;
+}
 
 export default function ScansPage() {
-  const hasScans = mockScans.length > 0;
+  const router = useRouter();
+  const [scans, setScans] = useState<ScanListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchScans() {
+      try {
+        const res = await fetch("/api/scans");
+        if (res.status === 401) {
+          router.push("/login");
+          return;
+        }
+        const data = await res.json();
+        setScans(data);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load scans");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchScans();
+  }, [router]);
+
+  const hasScans = scans.length > 0;
 
   return (
     <div className="space-y-6">
@@ -55,7 +64,7 @@ export default function ScansPage() {
               <Filter className="mr-1.5 h-3.5 w-3.5" />
               Filter
             </Button>
-            <Button size="sm">
+            <Button size="sm" onClick={() => router.push("/apps")}>
               <ScanLine className="mr-1.5 h-3.5 w-3.5" />
               Run scan
             </Button>
@@ -63,7 +72,13 @@ export default function ScansPage() {
         }
       />
 
-      {!hasScans ? (
+      {loading ? (
+        <p className="text-xs text-[var(--color-muted-foreground)]">
+          Loading scans...
+        </p>
+      ) : error ? (
+        <p className="text-xs text-red-400">{error}</p>
+      ) : !hasScans ? (
         <div className="rounded-[var(--radius-card)] border border-dashed border-slate-800/80 bg-slate-950/60 px-6 py-10 text-center text-xs text-[var(--color-muted-foreground)]">
           No scans have been run yet. Start by adding an application and running
           your first CompliScan.
@@ -85,11 +100,11 @@ export default function ScansPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockScans.map((scan) => (
+              {scans.map((scan) => (
                 <TableRow
                   key={scan.id}
                   className="cursor-pointer"
-                  onClick={() => (window.location.href = `/scans/${scan.id}`)}
+                  onClick={() => router.push(`/scans/${scan.id}`)}
                 >
                   <TableCell className="text-xs text-slate-300">
                     {scan.id}
@@ -117,7 +132,7 @@ export default function ScansPage() {
                     <StatusPill status={scan.status} />
                   </TableCell>
                   <TableCell className="text-right text-xs text-slate-400">
-                    {scan.createdAt}
+                    {new Date(scan.createdAt).toLocaleString()}
                   </TableCell>
                 </TableRow>
               ))}

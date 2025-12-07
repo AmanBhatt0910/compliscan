@@ -21,7 +21,7 @@ export default function AboutPage() {
               </p>
             </div>
           </div>
-          <Button asChild size="sm" variant="outline">
+          <Button size="sm" variant="outline">
             <Link href="/">Back to home</Link>
           </Button>
         </header>
@@ -164,7 +164,7 @@ export default function AboutPage() {
               Next.js (App Router), Tailwind CSS (dark theme), Framer Motion,
               MongoDB, TypeScript.
             </p>
-            <Button asChild size="sm">
+            <Button size="sm">
               <Link href="/dashboard">Open CompliScan dashboard</Link>
             </Button>
           </div>

@@ -1,5 +1,9 @@
 // src/app/(dashboard)/apps/page.tsx
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -13,27 +17,41 @@ import {
 } from "@/components/ui/table";
 import { Globe2, PlusCircle } from "lucide-react";
 
-const mockApps = [
-  {
-    id: "1",
-    name: "Example Web",
-    url: "https://example.com",
-    environment: "Production",
-    lastScore: 88,
-    lastScanned: "2 hours ago",
-  },
-  {
-    id: "2",
-    name: "College Portal",
-    url: "https://portal.college.in",
-    environment: "Production",
-    lastScore: 73,
-    lastScanned: "1 day ago",
-  },
-];
+interface AppListItem {
+  id: string;
+  name: string;
+  url: string;
+  environment: string;
+  createdAt: string;
+}
 
 export default function AppsPage() {
-  const hasApps = mockApps.length > 0;
+  const router = useRouter();
+  const [apps, setApps] = useState<AppListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchApps() {
+      try {
+        const res = await fetch("/api/apps");
+        if (res.status === 401) {
+          router.push("/login");
+          return;
+        }
+        const data = await res.json();
+        setApps(data);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load applications");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchApps();
+  }, [router]);
+
+  const hasApps = apps.length > 0;
 
   return (
     <div className="space-y-6">
@@ -41,7 +59,7 @@ export default function AppsPage() {
         title="Monitored applications"
         description="Add and manage web applications that CompliScan will analyze for security and compliance."
         actions={
-          <Button asChild size="sm">
+          <Button size="sm">
             <Link href="/apps/new" className="flex items-center gap-1.5">
               <PlusCircle className="h-3.5 w-3.5" />
               Add application
@@ -50,15 +68,18 @@ export default function AppsPage() {
         }
       />
 
-      {!hasApps ? (
+      {loading ? (
+        <p className="text-xs text-[var(--color-muted-foreground)]">
+          Loading applications...
+        </p>
+      ) : error ? (
+        <p className="text-xs text-red-400">{error}</p>
+      ) : !hasApps ? (
         <EmptyState
           title="No applications added yet"
           description="Start by registering a web application URL. CompliScan will analyze its HTTPS, headers, cookies and more."
           actionLabel="Add your first application"
-          onAction={() => {
-            // In real app, use router.push("/apps/new")
-            window.location.href = "/apps/new";
-          }}
+          onAction={() => router.push("/apps/new")}
           icon={<Globe2 className="h-6 w-6" />}
         />
       ) : (
@@ -72,16 +93,15 @@ export default function AppsPage() {
                 <TableHead>Application</TableHead>
                 <TableHead>URL</TableHead>
                 <TableHead>Environment</TableHead>
-                <TableHead className="text-right">Last score</TableHead>
-                <TableHead className="text-right">Last scanned</TableHead>
+                <TableHead className="text-right">Created</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockApps.map((app) => (
+              {apps.map((app) => (
                 <TableRow
                   key={app.id}
                   className="cursor-pointer"
-                  onClick={() => (window.location.href = `/apps/${app.id}`)}
+                  onClick={() => router.push(`/apps/${app.id}`)}
                 >
                   <TableCell className="text-xs font-medium text-slate-100">
                     {app.name}
@@ -94,21 +114,8 @@ export default function AppsPage() {
                       {app.environment}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right text-xs">
-                    <span
-                      className={
-                        app.lastScore >= 80
-                          ? "text-emerald-400"
-                          : app.lastScore >= 60
-                          ? "text-amber-300"
-                          : "text-red-300"
-                      }
-                    >
-                      {app.lastScore}
-                    </span>
-                  </TableCell>
                   <TableCell className="text-right text-xs text-slate-400">
-                    {app.lastScanned}
+                    {new Date(app.createdAt).toLocaleString()}
                   </TableCell>
                 </TableRow>
               ))}

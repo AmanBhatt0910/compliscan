@@ -31,7 +31,7 @@ export default function LandingPage() {
             >
               Login
             </Link>
-            <Button asChild size="sm" variant="primary">
+            <Button size="sm" variant="primary">
               <Link href="/register">Get started</Link>
             </Button>
           </div>
@@ -62,13 +62,13 @@ export default function LandingPage() {
             </p>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button asChild size="lg" variant="primary">
+              <Button size="lg" variant="primary">
                 <Link href="/dashboard" className="flex items-center gap-2">
                   Open CompliScan
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline">
+              <Button size="lg" variant="outline">
                 <Link href="/about">View project overview</Link>
               </Button>
             </div>

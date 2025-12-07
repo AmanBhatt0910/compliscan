@@ -8,16 +8,39 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export default function RegisterPage() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
-    // TODO: call /api/auth/register
-    setTimeout(() => {
-      setLoading(false);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to create account");
+        return;
+      }
+
+      // Cookie set by API; redirect to dashboard
       window.location.href = "/dashboard";
-    }, 800);
+    } catch (err) {
+      console.error(err);
+      setError("Unexpected error while creating account");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -51,7 +74,12 @@ export default function RegisterPage() {
               <label className="text-[0.7rem] font-medium text-slate-200">
                 Full name
               </label>
-              <Input placeholder="Your name" required />
+              <Input
+                placeholder="Your name"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <label className="text-[0.7rem] font-medium text-slate-200">
@@ -62,6 +90,8 @@ export default function RegisterPage() {
                 placeholder="you@example.com"
                 required
                 autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="space-y-1">
@@ -73,12 +103,18 @@ export default function RegisterPage() {
                 placeholder="••••••••"
                 required
                 autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
               <p className="text-[0.65rem] text-[var(--color-muted-foreground)]">
                 Use at least 8 characters, including a mix of letters, numbers,
                 and symbols — CompliScan is about good security habits too.
               </p>
             </div>
+
+            {error && (
+              <p className="text-[0.7rem] text-red-400">{error}</p>
+            )}
 
             <Button
               type="submit"

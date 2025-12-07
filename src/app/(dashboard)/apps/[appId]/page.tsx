@@ -1,7 +1,8 @@
 // src/app/(dashboard)/apps/[appId]/page.tsx
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,53 +19,138 @@ import { StatusPill } from "@/components/common/StatusPill";
 import { ScoreChart } from "@/components/charts/ScoreChart";
 import { Globe2, ScanLine } from "lucide-react";
 
-const mockApp = {
-  id: "1",
-  name: "Example Web",
-  url: "https://example.com",
-  environment: "Production",
-  description: "Public marketing site used in demos.",
-  latestScore: 88,
-  riskLevel: "Low",
-};
+interface AppDetails {
+  id: string;
+  name: string;
+  url: string;
+  environment: string;
+  description?: string;
+  createdAt: string;
+}
 
-const mockScans = [
-  {
-    id: "scan-1",
-    score: 88,
-    riskLevel: "Low",
-    createdAt: "2 hours ago",
-    findingsSummary: "1 warning, 0 fails",
-    status: "pass" as const,
-  },
-  {
-    id: "scan-2",
-    score: 79,
-    riskLevel: "Medium",
-    createdAt: "1 day ago",
-    findingsSummary: "2 warnings, 1 fail",
-    status: "warning" as const,
-  },
-  {
-    id: "scan-3",
-    score: 61,
-    riskLevel: "Medium",
-    createdAt: "3 days ago",
-    findingsSummary: "3 warnings, 2 fails",
-    status: "fail" as const,
-  },
-];
+interface ScanHistoryItem {
+  id: string;
+  score: number;
+  status: "pass" | "warning" | "fail";
+  createdAt: string;
+}
+
+// Shape returned from /api/scans
+interface ScanApiItem {
+  id: string;
+  appName: string;
+  appUrl: string;
+  score: number;
+  status: "pass" | "warning" | "fail";
+  createdAt: string;
+}
 
 export default function AppDetailsPage() {
-  const params = useParams();
+  const params = useParams<{ appId: string }>();
+  const router = useRouter();
   const appId = params.appId;
 
-  const app = mockApp; // later: fetch by appId
+  const [app, setApp] = useState<AppDetails | null>(null);
+  const [scans, setScans] = useState<ScanHistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleRunScan() {
-    // TODO: call /api/scans with appId and then redirect to scan page
-    alert(`Triggering scan for app ${appId} (mock).`);
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        // Fetch app
+        const resApp = await fetch(`/api/apps/${appId}`);
+        if (resApp.status === 401) {
+          router.push("/login");
+          return;
+        }
+        if (!resApp.ok) {
+          setError("Failed to load application details");
+          setLoading(false);
+          return;
+        }
+        const appData: AppDetails = await resApp.json();
+        setApp(appData);
+
+        // Fetch scans for this app
+        const resScans = await fetch(`/api/scans?appId=${appId}`);
+        if (resScans.ok) {
+          const scanData: ScanApiItem[] = await resScans.json();
+          setScans(
+            scanData.map((s) => ({
+              id: s.id,
+              score: s.score,
+              status: s.status,
+              createdAt: s.createdAt,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error(err);
+        setError("Unexpected error while loading data");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [appId, router]);
+
+  async function handleRunScan() {
+    if (!app) return;
+    setScanLoading(true);
+    try {
+      const res = await fetch("/api/scans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appId: app.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to run scan");
+        return;
+      }
+      // After scan, refresh scan list
+      const resScans = await fetch(`/api/scans?appId=${app.id}`);
+      if (resScans.ok) {
+        const scanData: ScanApiItem[] = await resScans.json();
+        setScans(
+          scanData.map((s) => ({
+            id: s.id,
+            score: s.score,
+            status: s.status,
+            createdAt: s.createdAt,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Unexpected error while running scan");
+    } finally {
+      setScanLoading(false);
+    }
   }
+
+  if (loading) {
+    return (
+      <p className="text-xs text-[var(--color-muted-foreground)]">
+        Loading application…
+      </p>
+    );
+  }
+
+  if (error || !app) {
+    return (
+      <p className="text-xs text-red-400">
+        {error || "Application not found"}
+      </p>
+    );
+  }
+
+  const latestScore = scans.length > 0 ? scans[0].score : 0;
+  const riskLabel =
+    latestScore >= 80 ? "Low" : latestScore >= 60 ? "Medium" : "High";
 
   return (
     <div className="space-y-6">
@@ -72,7 +158,12 @@ export default function AppDetailsPage() {
         title={app.name}
         description={app.url}
         actions={
-          <Button size="sm" onClick={handleRunScan} className="flex items-center gap-1.5">
+          <Button
+            size="sm"
+            onClick={handleRunScan}
+            loading={scanLoading}
+            className="flex items-center gap-1.5"
+          >
             <ScanLine className="h-3.5 w-3.5" />
             Run new scan
           </Button>
@@ -111,11 +202,20 @@ export default function AppDetailsPage() {
             <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-[var(--radius-card)] bg-slate-950/80 px-3 py-2">
                 <p className="text-[0.65rem] text-slate-400">Latest score</p>
-                <p className="mt-1 text-xl font-semibold text-emerald-400">
-                  {app.latestScore}
+                <p
+                  className={
+                    "mt-1 text-xl font-semibold " +
+                    (latestScore >= 80
+                      ? "text-emerald-400"
+                      : latestScore >= 60
+                      ? "text-amber-300"
+                      : "text-red-300")
+                  }
+                >
+                  {scans.length > 0 ? latestScore : "—"}
                 </p>
                 <p className="mt-0.5 text-[0.65rem] text-emerald-300">
-                  {app.riskLevel} risk
+                  {scans.length > 0 ? `${riskLabel} risk` : "No scans yet"}
                 </p>
               </div>
               <div className="rounded-[var(--radius-card)] bg-slate-950/80 px-3 py-2">
@@ -123,7 +223,9 @@ export default function AppDetailsPage() {
                   Last scanned
                 </p>
                 <p className="mt-1 text-[0.8rem] text-slate-200">
-                  2 hours ago
+                  {scans.length > 0
+                    ? new Date(scans[0].createdAt).toLocaleString()
+                    : "No scans yet"}
                 </p>
                 <p className="mt-0.5 text-[0.65rem] text-[var(--color-muted-foreground)]">
                   Based on the latest CompliScan run
@@ -134,7 +236,7 @@ export default function AppDetailsPage() {
                   Scan history
                 </p>
                 <p className="mt-1 text-[0.8rem] text-slate-200">
-                  {mockScans.length} scans
+                  {scans.length} scans
                 </p>
                 <p className="mt-0.5 text-[0.65rem] text-[var(--color-muted-foreground)]">
                   View detailed findings for each run.
@@ -151,7 +253,7 @@ export default function AppDetailsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ScoreChart score={app.latestScore} />
+            <ScoreChart score={latestScore} />
           </CardContent>
         </Card>
       </section>
@@ -161,52 +263,54 @@ export default function AppDetailsPage() {
         <div className="border-b border-slate-900/80 px-4 py-3 text-[0.7rem] font-medium uppercase tracking-wide text-slate-400">
           Scan history
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Scan ID</TableHead>
-              <TableHead>Score</TableHead>
-              <TableHead>Risk</TableHead>
-              <TableHead>Summary</TableHead>
-              <TableHead className="text-right">Run at</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {mockScans.map((scan) => (
-              <TableRow
-                key={scan.id}
-                className="cursor-pointer"
-                onClick={() => (window.location.href = `/scans/${scan.id}`)}
-              >
-                <TableCell className="text-xs text-slate-300">
-                  {scan.id}
-                </TableCell>
-                <TableCell className="text-xs">
-                  <span
-                    className={
-                      scan.score >= 80
-                        ? "text-emerald-400"
-                        : scan.score >= 60
-                        ? "text-amber-300"
-                        : "text-red-300"
-                    }
-                  >
-                    {scan.score}
-                  </span>
-                </TableCell>
-                <TableCell className="text-xs">
-                  <StatusPill status={scan.status} />
-                </TableCell>
-                <TableCell className="text-xs text-slate-300">
-                  {scan.findingsSummary}
-                </TableCell>
-                <TableCell className="text-right text-xs text-slate-400">
-                  {scan.createdAt}
-                </TableCell>
+        {scans.length === 0 ? (
+          <p className="px-4 py-3 text-xs text-[var(--color-muted-foreground)]">
+            No scans have been run yet. Click &quot;Run new scan&quot; to start.
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Scan ID</TableHead>
+                <TableHead>Score</TableHead>
+                <TableHead>Risk</TableHead>
+                <TableHead className="text-right">Run at</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {scans.map((scan) => (
+                <TableRow
+                  key={scan.id}
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/scans/${scan.id}`)}
+                >
+                  <TableCell className="text-xs text-slate-300">
+                    {scan.id}
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    <span
+                      className={
+                        scan.score >= 80
+                          ? "text-emerald-400"
+                          : scan.score >= 60
+                          ? "text-amber-300"
+                          : "text-red-300"
+                      }
+                    >
+                      {scan.score}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    <StatusPill status={scan.status} />
+                  </TableCell>
+                  <TableCell className="text-right text-xs text-slate-400">
+                    {new Date(scan.createdAt).toLocaleString()}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </section>
     </div>
   );

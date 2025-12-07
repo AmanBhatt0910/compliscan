@@ -6,20 +6,39 @@ import { useState, FormEvent } from "react";
 import { ShieldHalf, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
-    // TODO: call /api/auth/login
-    setTimeout(() => {
-      setLoading(false);
-      // For now, just redirect to dashboard
+    setError(null);
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to sign in");
+        return;
+      }
+      
       window.location.href = "/dashboard";
-    }, 800);
+    } catch (err) {
+      console.error(err);
+      setError("Unexpected error while signing in");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -58,6 +77,8 @@ export default function LoginPage() {
                 placeholder="you@example.com"
                 required
                 autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="space-y-1">
@@ -75,8 +96,14 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 required
                 autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+
+            {error && (
+              <p className="text-[0.7rem] text-red-400">{error}</p>
+            )}
 
             <Button
               type="submit"
