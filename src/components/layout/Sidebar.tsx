@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { ShieldHalf, LogOut, X } from "lucide-react";
 import { sidebarNav } from "@/config/nav";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface CurrentUser {
   id: string;
@@ -69,11 +70,19 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     <>
       {/* Logo + workspace */}
       <div className="mb-6 flex items-center justify-between gap-2 px-1">
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[conic-gradient(at_top_left,_#4f46e5,_#0ea5e9,_#22c55e,_#4f46e5)] shadow-lg shadow-indigo-500/30">
-            <div className="flex h-7 w-7 items-center justify-center rounded-2xl bg-slate-950/90">
-              <ShieldHalf className="h-4 w-4 text-indigo-300" />
-            </div>
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+          onClick={onMobileClose}
+        >
+          <div className="relative h-10 w-10 overflow-hidden rounded-[var(--radius-card)] bg-slate-900">
+            <Image
+              src="/compliscan-logo.png"
+              alt="CompliScan logo"
+              fill
+              className="object-contain"
+              priority
+            />
           </div>
           <div>
             <p className="text-sm font-semibold leading-tight tracking-tight text-slate-50">
@@ -83,7 +92,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
               Security Compliance Analyzer
             </p>
           </div>
-        </div>
+        </Link>
         <span className="rounded-full bg-slate-900/80 px-2 py-0.5 text-[0.6rem] font-medium uppercase tracking-wide text-slate-400 border border-slate-800/80">
           Workspace
         </span>

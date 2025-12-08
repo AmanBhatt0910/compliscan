@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useState, FormEvent } from "react";
-import { ShieldHalf, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -32,7 +32,7 @@ export default function LoginPage() {
         setError(data.error || "Failed to sign in");
         return;
       }
-      
+
       window.location.href = "/dashboard";
     } catch (err) {
       console.error(err);
@@ -45,22 +45,30 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--color-background)] px-4">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex items-center justify-center gap-2">
-          <div className="relative h-9 w-9 overflow-hidden rounded-[var(--radius-card)] bg-slate-900">
-            <Image
-              src="/compliscan-logo.svg"
-              alt="CompliScan logo"
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-semibold leading-none">CompliScan</p>
-            <p className="text-[0.65rem] text-[var(--color-muted-foreground)]">
-              Security Compliance Analyzer
-            </p>
-          </div>
+        {/* Logo + app name (clickable, goes to /) */}
+        <div className="mb-6 flex items-center justify-center">
+          <Link
+            href="/"
+            className="flex items-center gap-3 hover:opacity-90 transition-opacity"
+          >
+            <div className="relative h-11 w-11 overflow-hidden rounded-[var(--radius-card)] bg-slate-900">
+              <Image
+                src="/compliscan-logo.png"
+                alt="CompliScan logo"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            <div className="text-left">
+              <p className="text-base font-semibold leading-tight">
+                CompliScan
+              </p>
+              <p className="text-[0.7rem] text-[var(--color-muted-foreground)]">
+                Security Compliance Analyzer
+              </p>
+            </div>
+          </Link>
         </div>
 
         <div className="compliscan-card bg-slate-950/80 px-5 py-6">

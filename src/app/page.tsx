@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ShieldHalf, ArrowRight, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
+import Image from "next/image";
 
 export default function LandingPage() {
   return (
@@ -11,17 +12,28 @@ export default function LandingPage() {
         {/* Top nav */}
         <header className="mb-10 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-brand-soft)] shadow-lg">
-              <ShieldHalf className="h-4 w-4 text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold leading-none">
-                {siteConfig.name}
-              </p>
-              <p className="text-[0.65rem] text-[var(--color-muted-foreground)]">
-                Security Compliance Analyzer
-              </p>
-            </div>
+            <Link
+              href="/"
+              className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+            >
+              <div className="relative h-10 w-10 overflow-hidden rounded-[var(--radius-card)] bg-slate-900">
+                <Image
+                  src="/compliscan-logo.png"
+                  alt="CompliScan logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <div>
+                <p className="text-sm font-semibold leading-none">
+                  {siteConfig.name}
+                </p>
+                <p className="text-[0.65rem] text-[var(--color-muted-foreground)]">
+                  Security Compliance Analyzer
+                </p>
+              </div>
+            </Link>
           </div>
 
           <div className="flex items-center gap-2 text-xs">

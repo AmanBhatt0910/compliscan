@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Shield background -->
+  <path
+    d="M32 4 14 10v20c0 13 8.3 24.8 18 30 9.7-5.2 18-17 18-30V10L32 4z"
+    fill="#2563EB"
+  />
+  <!-- Inner concentric arcs -->
+  <circle cx="32" cy="30" r="14" fill="none" stroke="#1D4ED8" stroke-width="2"/>
+  <circle cx="32" cy="30" r="10" fill="none" stroke="#1D4ED8" stroke-width="2"/>
+  <circle cx="32" cy="30" r="6"  fill="none" stroke="#1D4ED8" stroke-width="2"/>
+
+  <!-- Check mark (grey base) -->
+  <path
+    d="M25 31.5 30 36.5 32 34.5"
+    fill="none"
+    stroke="#E5E7EB"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Check mark (red main arm) -->
+  <path
+    d="M32 34.5 41 25.5"
+    fill="none"
+    stroke="#F97373"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>
