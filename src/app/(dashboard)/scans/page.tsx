@@ -14,7 +14,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusPill } from "@/components/common/StatusPill";
-import { Badge } from "@/components/ui/badge";
 import type { ScanListItem } from "@/types/api";
 
 export default function ScansPage() {
