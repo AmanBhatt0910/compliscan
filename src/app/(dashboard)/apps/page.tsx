@@ -1,7 +1,6 @@
 // src/app/(dashboard)/apps/page.tsx
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -15,7 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Globe2, PlusCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Globe2 } from "lucide-react";
 
 interface AppListItem {
   id: string;
@@ -29,100 +29,138 @@ export default function AppsPage() {
   const router = useRouter();
   const [apps, setApps] = useState<AppListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchApps() {
+    async function loadApps() {
       try {
         const res = await fetch("/api/apps");
         if (res.status === 401) {
           router.push("/login");
           return;
         }
-        const data = await res.json();
+        if (!res.ok) return;
+        const data: AppListItem[] = await res.json();
         setApps(data);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load applications");
       } finally {
         setLoading(false);
       }
     }
-    fetchApps();
+    loadApps();
   }, [router]);
 
-  const hasApps = apps.length > 0;
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
-        title="Monitored applications"
-        description="Add and manage web applications that CompliScan will analyze for security and compliance."
+        title="Applications"
+        description="Manage the web applications monitored by CompliScan."
         actions={
-          <Button size="sm">
-            <Link href="/apps/new" className="flex items-center gap-1.5">
-              <PlusCircle className="h-3.5 w-3.5" />
-              Add application
-            </Link>
+          <Button
+            size="sm"
+            className="flex items-center gap-1.5"
+            onClick={() => router.push("/apps/new")}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add application
           </Button>
         }
       />
 
-      {loading ? (
-        <p className="text-xs text-[var(--color-muted-foreground)]">
-          Loading applications...
-        </p>
-      ) : error ? (
-        <p className="text-xs text-red-400">{error}</p>
-      ) : !hasApps ? (
-        <EmptyState
-          title="No applications added yet"
-          description="Start by registering a web application URL. CompliScan will analyze its HTTPS, headers, cookies and more."
-          actionLabel="Add your first application"
-          onAction={() => router.push("/apps/new")}
-          icon={<Globe2 className="h-6 w-6" />}
-        />
-      ) : (
-        <section className="compliscan-card p-0">
-          <div className="border-b border-slate-900/80 px-4 py-3 text-[0.7rem] font-medium uppercase tracking-wide text-slate-400">
-            Applications
+      {/* Content card */}
+      <section className="compliscan-card p-0">
+        <div className="flex flex-col gap-2 border-b border-slate-900/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[0.7rem] font-medium uppercase tracking-wide text-slate-400">
+            Monitored apps
+          </p>
+          <p className="text-[0.65rem] text-[var(--color-muted-foreground)]">
+            {apps.length} application{apps.length !== 1 && "s"} connected to
+            CompliScan.
+          </p>
+        </div>
+
+        {loading ? (
+          <p className="px-4 py-4 text-xs text-[var(--color-muted-foreground)]">
+            Loading applications…
+          </p>
+        ) : apps.length === 0 ? (
+          <div className="px-4 py-4">
+            <EmptyState
+              title="No applications yet"
+              description="Start by adding a web application to monitor its security posture."
+              actionLabel="Add application"
+              onAction={() => router.push("/apps/new")}
+            />
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Application</TableHead>
-                <TableHead>URL</TableHead>
-                <TableHead>Environment</TableHead>
-                <TableHead className="text-right">Created</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {apps.map((app) => (
-                <TableRow
-                  key={app.id}
-                  className="cursor-pointer"
-                  onClick={() => router.push(`/apps/${app.id}`)}
-                >
-                  <TableCell className="text-xs font-medium text-slate-100">
-                    {app.name}
-                  </TableCell>
-                  <TableCell className="text-xs text-slate-400">
-                    {app.url}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    <span className="inline-flex rounded-[999px] bg-slate-900/90 px-2 py-0.5 text-[0.65rem] text-slate-300">
-                      {app.environment}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right text-xs text-slate-400">
-                    {new Date(app.createdAt).toLocaleString()}
-                  </TableCell>
+        ) : (
+          <div className="w-full overflow-x-auto">
+            <Table className="min-w-[640px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[40%]">Application</TableHead>
+                  <TableHead className="hidden sm:table-cell">
+                    Environment
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    Added on
+                  </TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </section>
-      )}
+              </TableHeader>
+              <TableBody>
+                {apps.map((app) => (
+                  <TableRow
+                    key={app.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/apps/${app.id}`)}
+                  >
+                    <TableCell className="align-middle">
+                      <div className="flex items-start gap-2">
+                        <div className="mt-0.5 hidden h-7 w-7 items-center justify-center rounded-[var(--radius-card)] bg-slate-900/80 sm:flex">
+                          <Globe2 className="h-3.5 w-3.5 text-slate-300" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-[0.8rem] font-medium text-slate-100">
+                            {app.name}
+                          </p>
+                          <p className="truncate text-[0.7rem] text-[var(--color-muted-foreground)]">
+                            {app.url}
+                          </p>
+                          {/* Environment badge visible on mobile here */}
+                          <div className="mt-1 flex items-center gap-2 sm:hidden">
+                            <Badge variant="outline" className="text-[0.6rem]">
+                              {app.environment}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell align-middle">
+                      <Badge variant="outline" className="text-[0.65rem]">
+                        {app.environment}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden align-middle text-[0.7rem] text-slate-400 md:table-cell">
+                      {new Date(app.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="align-middle text-right">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-[0.7rem]"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/apps/${app.id}`);
+                        }}
+                      >
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

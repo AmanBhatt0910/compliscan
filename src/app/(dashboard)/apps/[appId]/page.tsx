@@ -35,7 +35,6 @@ interface ScanHistoryItem {
   createdAt: string;
 }
 
-// Shape returned from /api/scans
 interface ScanApiItem {
   id: string;
   appName: string;
@@ -60,7 +59,6 @@ export default function AppDetailsPage() {
     async function fetchData() {
       try {
         setLoading(true);
-        // Fetch app
         const resApp = await fetch(`/api/apps/${appId}`);
         if (resApp.status === 401) {
           router.push("/login");
@@ -74,7 +72,6 @@ export default function AppDetailsPage() {
         const appData: AppDetails = await resApp.json();
         setApp(appData);
 
-        // Fetch scans for this app
         const resScans = await fetch(`/api/scans?appId=${appId}`);
         if (resScans.ok) {
           const scanData: ScanApiItem[] = await resScans.json();
@@ -111,7 +108,6 @@ export default function AppDetailsPage() {
         alert(data.error || "Failed to run scan");
         return;
       }
-      // After scan, refresh scan list
       const resScans = await fetch(`/api/scans?appId=${app.id}`);
       if (resScans.ok) {
         const scanData: ScanApiItem[] = await resScans.json();
@@ -170,10 +166,10 @@ export default function AppDetailsPage() {
         }
       />
 
-      {/* App summary row */}
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,2fr)]">
+      {/* Summary section */}
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,2.1fr)_minmax(0,2fr)]">
         <Card className="border border-slate-800/80 bg-slate-950/80">
-          <CardHeader className="flex flex-row items-center justify-between gap-3">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-brand-soft)]">
                 <Globe2 className="h-4 w-4 text-white" />
@@ -182,12 +178,14 @@ export default function AppDetailsPage() {
                 <CardTitle className="text-sm font-semibold">
                   {app.name}
                 </CardTitle>
-                <p className="text-[0.7rem] text-[var(--color-muted-foreground)]">
+                <p className="text-[0.7rem] text-[var(--color-muted-foreground)] truncate max-w-[260px] sm:max-w-sm">
                   {app.url}
                 </p>
               </div>
             </div>
-            <Badge variant="outline">{app.environment}</Badge>
+            <Badge variant="outline" className="w-fit text-[0.65rem]">
+              {app.environment}
+            </Badge>
           </CardHeader>
           <CardContent className="space-y-3 text-xs">
             <div>
@@ -199,12 +197,12 @@ export default function AppDetailsPage() {
               </p>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-[var(--radius-card)] bg-slate-950/80 px-3 py-2">
                 <p className="text-[0.65rem] text-slate-400">Latest score</p>
                 <p
                   className={
-                    "mt-1 text-xl font-semibold " +
+                    "mt-1 text-lg font-semibold " +
                     (latestScore >= 80
                       ? "text-emerald-400"
                       : latestScore >= 60
@@ -219,22 +217,18 @@ export default function AppDetailsPage() {
                 </p>
               </div>
               <div className="rounded-[var(--radius-card)] bg-slate-950/80 px-3 py-2">
-                <p className="text-[0.65rem] text-slate-400">
-                  Last scanned
-                </p>
+                <p className="text-[0.65rem] text-slate-400">Last scanned</p>
                 <p className="mt-1 text-[0.8rem] text-slate-200">
                   {scans.length > 0
                     ? new Date(scans[0].createdAt).toLocaleString()
                     : "No scans yet"}
                 </p>
                 <p className="mt-0.5 text-[0.65rem] text-[var(--color-muted-foreground)]">
-                  Based on the latest CompliScan run
+                  Based on the latest CompliScan run.
                 </p>
               </div>
               <div className="rounded-[var(--radius-card)] bg-slate-950/80 px-3 py-2">
-                <p className="text-[0.65rem] text-slate-400">
-                  Scan history
-                </p>
+                <p className="text-[0.65rem] text-slate-400">Scan history</p>
                 <p className="mt-1 text-[0.8rem] text-slate-200">
                   {scans.length} scans
                 </p>
@@ -265,51 +259,58 @@ export default function AppDetailsPage() {
         </div>
         {scans.length === 0 ? (
           <p className="px-4 py-3 text-xs text-[var(--color-muted-foreground)]">
-            No scans have been run yet. Click &quot;Run new scan&quot; to start.
+            No scans have been run yet. Click &quot;Run new scan&quot; to
+            start.
           </p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Scan ID</TableHead>
-                <TableHead>Score</TableHead>
-                <TableHead>Risk</TableHead>
-                <TableHead className="text-right">Run at</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {scans.map((scan) => (
-                <TableRow
-                  key={scan.id}
-                  className="cursor-pointer"
-                  onClick={() => router.push(`/scans/${scan.id}`)}
-                >
-                  <TableCell className="text-xs text-slate-300">
-                    {scan.id}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    <span
-                      className={
-                        scan.score >= 80
-                          ? "text-emerald-400"
-                          : scan.score >= 60
-                          ? "text-amber-300"
-                          : "text-red-300"
-                      }
-                    >
-                      {scan.score}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    <StatusPill status={scan.status} />
-                  </TableCell>
-                  <TableCell className="text-right text-xs text-slate-400">
-                    {new Date(scan.createdAt).toLocaleString()}
-                  </TableCell>
+          <div className="w-full overflow-x-auto">
+            <Table className="min-w-[520px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Scan ID</TableHead>
+                  <TableHead>Score</TableHead>
+                  <TableHead className="hidden sm:table-cell">
+                    Risk
+                  </TableHead>
+                  <TableHead className="text-right">Run at</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {scans.map((scan) => (
+                  <TableRow
+                    key={scan.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/scans/${scan.id}`)}
+                  >
+                    <TableCell className="text-xs text-slate-300">
+                      <span className="block max-w-[160px] truncate">
+                        {scan.id}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      <span
+                        className={
+                          scan.score >= 80
+                            ? "text-emerald-400"
+                            : scan.score >= 60
+                            ? "text-amber-300"
+                            : "text-red-300"
+                        }
+                      >
+                        {scan.score}
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden text-xs sm:table-cell">
+                      <StatusPill status={scan.status} />
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-slate-400">
+                      {new Date(scan.createdAt).toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </section>
     </div>

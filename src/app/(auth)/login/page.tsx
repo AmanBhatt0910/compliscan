@@ -6,6 +6,7 @@ import { useState, FormEvent } from "react";
 import { ShieldHalf, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -45,8 +46,14 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-[var(--color-background)] px-4">
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center justify-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-brand-soft)] shadow-lg">
-            <ShieldHalf className="h-4 w-4 text-white" />
+          <div className="relative h-9 w-9 overflow-hidden rounded-[var(--radius-card)] bg-slate-900">
+            <Image
+              src="/compliscan-logo.svg"
+              alt="CompliScan logo"
+              fill
+              className="object-contain"
+              priority
+            />
           </div>
           <div className="text-center">
             <p className="text-sm font-semibold leading-none">CompliScan</p>

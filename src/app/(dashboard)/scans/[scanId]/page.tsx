@@ -4,82 +4,66 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { ScoreChart } from "@/components/charts/ScoreChart";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusPill } from "@/components/common/StatusPill";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ScoreChart } from "@/components/charts/ScoreChart";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Download, Globe2 } from "lucide-react";
+import { Globe2, ArrowLeft } from "lucide-react";
 
-type FindingStatus = "pass" | "warning" | "fail";
-type Severity = "Low" | "Medium" | "High";
+interface CategoryScores {
+  tls: number;
+  headers: number;
+  cookies: number;
+  content: number;
+}
 
 interface Finding {
   category: string;
   name: string;
-  status: FindingStatus;
-  severity: Severity;
+  status: "pass" | "warning" | "fail";
+  severity: "Low" | "Medium" | "High";
   description: string;
   recommendation: string;
 }
 
-interface ScanDetails {
+interface ScanDetail {
   id: string;
   score: number;
-  status: FindingStatus;
-  categories: {
-    tls: number;
-    headers: number;
-    cookies: number;
-    content: number;
-  };
+  status: "pass" | "warning" | "fail";
+  categories: CategoryScores;
+  findings: Finding[];
   app: {
     id?: string;
     name?: string;
     url?: string;
     environment?: string;
   };
-  findings: Finding[];
   createdAt: string;
 }
 
-export default function ScanDetailsPage() {
+export default function ScanDetailPage() {
   const params = useParams<{ scanId: string }>();
   const router = useRouter();
   const scanId = params.scanId;
 
-  const [scan, setScan] = useState<ScanDetails | null>(null);
+  const [scan, setScan] = useState<ScanDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchScan() {
+    async function loadScan() {
       try {
         const res = await fetch(`/api/scans/${scanId}`);
         if (res.status === 401) {
           router.push("/login");
           return;
         }
-        const data = await res.json();
         if (!res.ok) {
-          setError(data.error || "Failed to load scan");
-          setLoading(false);
+          setError("Failed to load scan details");
           return;
         }
+        const data: ScanDetail = await res.json();
         setScan(data);
       } catch (err) {
         console.error(err);
@@ -88,15 +72,8 @@ export default function ScanDetailsPage() {
         setLoading(false);
       }
     }
-    fetchScan();
+    loadScan();
   }, [scanId, router]);
-
-  function handleDownloadReport() {
-    // later: generate PDF; for now, just log JSON
-    if (!scan) return;
-    console.log("Scan report:", scan);
-    alert("Report generation can be implemented here (PDF/JSON).");
-  }
 
   if (loading) {
     return (
@@ -108,55 +85,62 @@ export default function ScanDetailsPage() {
 
   if (error || !scan) {
     return (
-      <p className="text-xs text-red-400">{error || "Scan not found"}</p>
+      <p className="text-xs text-red-400">
+        {error || "Scan not found"}
+      </p>
     );
   }
+
+  const { app } = scan;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`Scan details · ${scan.app.name ?? "Unknown app"}`}
-        description={`Scan ID: ${scan.id} · Run ${new Date(
-          scan.createdAt
-        ).toLocaleString()}`}
+        title="Scan details"
+        description={`Scan ID: ${scan.id}`}
         actions={
-          <Button size="sm" variant="outline" onClick={handleDownloadReport}>
-            <Download className="mr-1.5 h-3.5 w-3.5" />
-            Download report
+          <Button
+            size="sm"
+            variant="ghost"
+            className="flex items-center gap-1.5"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back
           </Button>
         }
       />
 
-      {/* Summary row */}
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,2.3fr)_minmax(0,2fr)]">
+      {/* Top summary: app + score */}
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,2fr)]">
+        {/* App summary */}
         <Card className="border border-slate-800/80 bg-slate-950/80">
-          <CardHeader className="flex items-center justify-between gap-3">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-brand-soft)]">
-                <ShieldCheck className="h-4 w-4 text-white" />
+                <Globe2 className="h-4 w-4 text-white" />
               </div>
-              <div>
-                <CardTitle className="text-sm font-semibold">
-                  {scan.app.name ?? "Unknown application"}
+              <div className="min-w-0">
+                <CardTitle className="text-sm font-semibold truncate max-w-[200px] sm:max-w-xs">
+                  {app.name || "Unknown application"}
                 </CardTitle>
-                <CardDescription className="flex items-center gap-2">
-                  <Globe2 className="h-3 w-3" />
-                  <span className="truncate">
-                    {scan.app.url ?? "URL not available"}
-                  </span>
-                </CardDescription>
+                <p className="mt-0.5 text-[0.7rem] text-[var(--color-muted-foreground)] truncate max-w-[220px] sm:max-w-md">
+                  {app.url || "URL not available"}
+                </p>
               </div>
             </div>
-            {scan.app.environment && (
-              <Badge variant="outline">{scan.app.environment}</Badge>
+            {app.environment && (
+              <Badge variant="outline" className="w-fit text-[0.65rem]">
+                {app.environment}
+              </Badge>
             )}
           </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-3 text-xs">
+          <CardContent className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-[var(--radius-card)] bg-slate-950/80 px-3 py-2">
               <p className="text-[0.65rem] text-slate-400">Overall score</p>
               <p
                 className={
-                  "mt-1 text-xl font-semibold " +
+                  "mt-1 text-lg font-semibold " +
                   (scan.score >= 80
                     ? "text-emerald-400"
                     : scan.score >= 60
@@ -166,46 +150,30 @@ export default function ScanDetailsPage() {
               >
                 {scan.score}
               </p>
-              <div className="mt-1">
+              <p className="mt-0.5 text-[0.65rem]">
                 <StatusPill status={scan.status} />
-              </div>
+              </p>
             </div>
             <div className="rounded-[var(--radius-card)] bg-slate-950/80 px-3 py-2">
-              <p className="text-[0.65rem] text-slate-400">Scan time</p>
+              <p className="text-[0.65rem] text-slate-400">Run at</p>
               <p className="mt-1 text-[0.8rem] text-slate-200">
                 {new Date(scan.createdAt).toLocaleString()}
               </p>
-              <p className="mt-0.5 text-[0.65rem] text-[var(--color-muted-foreground)]">
-                Single-page CompliScan run using public endpoint.
-              </p>
             </div>
             <div className="rounded-[var(--radius-card)] bg-slate-950/80 px-3 py-2">
-              <p className="text-[0.65rem] text-slate-400">
-                Category scores
+              <p className="text-[0.65rem] text-slate-400">App ID</p>
+              <p className="mt-1 text-[0.7rem] text-slate-300 truncate">
+                {app.id || "N/A"}
               </p>
-              <div className="mt-1 grid grid-cols-2 gap-1 text-[0.65rem]">
-                <CategoryChip label="TLS" value={scan.categories.tls} />
-                <CategoryChip
-                  label="Headers"
-                  value={scan.categories.headers}
-                />
-                <CategoryChip
-                  label="Cookies"
-                  value={scan.categories.cookies}
-                />
-                <CategoryChip
-                  label="Content"
-                  value={scan.categories.content}
-                />
-              </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Score donut / distribution */}
         <Card className="border border-slate-800/80 bg-slate-950/80">
           <CardHeader>
             <CardTitle className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              Overall posture
+              Security score
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -214,76 +182,97 @@ export default function ScanDetailsPage() {
         </Card>
       </section>
 
-      {/* Findings table */}
-      <section className="compliscan-card p-0">
-        <div className="border-b border-slate-900/80 px-4 py-3 text-[0.7rem] font-medium uppercase tracking-wide text-slate-400">
-          Detailed findings
-        </div>
-        {scan.findings.length === 0 ? (
-          <p className="px-4 py-3 text-xs text-[var(--color-muted-foreground)]">
-            No findings were recorded for this scan.
-          </p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Category</TableHead>
-                <TableHead>Check</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Severity</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Recommendation</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {scan.findings.map((f, idx) => (
-                <TableRow key={`${f.name}-${idx}`}>
-                  <TableCell className="text-xs text-slate-300">
-                    {f.category}
-                  </TableCell>
-                  <TableCell className="text-xs font-medium text-slate-100">
-                    {f.name}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    <StatusPill status={f.status} />
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    <Badge
-                      variant={
-                        f.severity === "High"
-                          ? "danger"
-                          : f.severity === "Medium"
-                          ? "warning"
-                          : "success"
-                      }
+      {/* Category scores + findings */}
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,2fr)]">
+        {/* Category breakdown */}
+        <Card className="border border-slate-800/80 bg-slate-950/80">
+          <CardHeader>
+            <CardTitle className="text-xs font-medium uppercase tracking-wide text-slate-400">
+              Category breakdown
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            {[
+              { label: "TLS / HTTPS", key: "tls" as const },
+              { label: "Security headers", key: "headers" as const },
+              { label: "Cookies", key: "cookies" as const },
+              { label: "Content & mixed", key: "content" as const },
+            ].map((cat) => (
+              <div
+                key={cat.key}
+                className="rounded-[var(--radius-card)] bg-slate-950/80 px-3 py-2"
+              >
+                <p className="text-[0.65rem] text-slate-400">{cat.label}</p>
+                <p className="mt-1 text-lg font-semibold text-slate-100">
+                  {scan.categories[cat.key]} / 100
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Findings list */}
+        <Card className="border border-slate-800/80 bg-slate-950/80">
+          <CardHeader>
+            <CardTitle className="text-xs font-medium uppercase tracking-wide text-slate-400">
+              Findings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {scan.findings.length === 0 ? (
+              <p className="text-xs text-[var(--color-muted-foreground)]">
+                No issues detected for this scan.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {scan.findings.map((f, idx) => {
+                  const severityColor =
+                    f.severity === "High"
+                      ? "bg-red-500/10 text-red-200 border-red-500/40"
+                      : f.severity === "Medium"
+                      ? "bg-amber-500/10 text-amber-200 border-amber-500/40"
+                      : "bg-emerald-500/10 text-emerald-200 border-emerald-500/40";
+
+                  return (
+                    <div
+                      key={idx}
+                      className="rounded-[var(--radius-card)] border border-slate-800/80 bg-slate-950/80 px-3 py-2.5"
                     >
-                      {f.severity}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-[0.7rem] text-slate-300">
-                    {f.description}
-                  </TableCell>
-                  <TableCell className="text-[0.7rem] text-[var(--color-muted-foreground)]">
-                    {f.recommendation}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-[0.75rem] font-semibold text-slate-100">
+                            {f.name}
+                          </p>
+                          <p className="text-[0.65rem] text-slate-400">
+                            {f.category}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[0.6rem] font-medium ${severityColor}`}
+                          >
+                            {f.severity}
+                          </span>
+                          <StatusPill status={f.status} />
+                        </div>
+                      </div>
+                      <p className="mt-1.5 text-[0.7rem] text-[var(--color-muted-foreground)]">
+                        {f.description}
+                      </p>
+                      <p className="mt-1 text-[0.7rem] text-slate-300">
+                        <span className="font-medium text-slate-200">
+                          Recommendation:
+                        </span>{" "}
+                        {f.recommendation}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </section>
-    </div>
-  );
-}
-
-function CategoryChip({ label, value }: { label: string; value: number }) {
-  const color =
-    value >= 80 ? "text-emerald-300" : value >= 60 ? "text-amber-200" : "text-red-200";
-
-  return (
-    <div className="flex items-center justify-between rounded-[999px] bg-slate-950/80 px-2 py-0.5">
-      <span className="text-[0.65rem] text-slate-300">{label}</span>
-      <span className={`text-[0.65rem] font-semibold ${color}`}>{value}</span>
     </div>
   );
 }
