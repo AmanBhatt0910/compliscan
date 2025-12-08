@@ -11,19 +11,33 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden h-screen w-60 flex-col border-r border-slate-900/80 bg-[color-mix(in_srgb,var(--color-background) 90%,black)] px-4 py-4 md:flex">
-      {/* Logo */}
-      <div className="mb-6 flex items-center gap-2 px-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-brand-soft)]">
-          <ShieldHalf className="h-4 w-4 text-white" />
+    <aside className="hidden h-screen w-64 flex-col border-r border-slate-900/80 bg-[radial-gradient(circle_at_top,_#020617_0,_#020617_40%,_#020617_70%,_#000_100%)]/95 px-4 py-4 md:flex">
+      {/* Logo + workspace */}
+      <div className="mb-6 flex items-center justify-between gap-2 px-1">
+        <div className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[conic-gradient(at_top_left,_#4f46e5,_#0ea5e9,_#22c55e,_#4f46e5)] shadow-lg shadow-indigo-500/30">
+            <div className="flex h-7 w-7 items-center justify-center rounded-2xl bg-slate-950/90">
+              <ShieldHalf className="h-4 w-4 text-indigo-300" />
+            </div>
+          </div>
+          <div>
+            <p className="text-sm font-semibold leading-tight tracking-tight text-slate-50">
+              CompliScan
+            </p>
+            <p className="text-[0.65rem] text-slate-400">
+              Security Compliance Analyzer
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-semibold leading-none">CompliScan</p>
-          <p className="text-[0.6rem] text-[var(--color-muted-foreground)]">
-            Security Compliance Analyzer
-          </p>
-        </div>
+        <span className="rounded-full bg-slate-900/80 px-2 py-0.5 text-[0.6rem] font-medium uppercase tracking-wide text-slate-400 border border-slate-800/80">
+          Workspace
+        </span>
       </div>
+
+      {/* Section label */}
+      <p className="mb-2 px-1 text-[0.65rem] font-medium uppercase tracking-wide text-slate-500">
+        Navigation
+      </p>
 
       {/* Nav */}
       <nav className="flex-1 space-y-1">
@@ -38,23 +52,39 @@ export default function Sidebar() {
               href={item.href}
               key={item.href}
               className={cn(
-                "flex items-center gap-2 rounded-[var(--radius-card)] px-2.5 py-2 text-xs font-medium transition-colors",
-                "text-slate-400 hover:bg-slate-900/80 hover:text-slate-100",
+                "group relative flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium transition-all",
+                "text-slate-400 hover:text-slate-50 hover:bg-slate-900/70",
                 active &&
-                  "bg-[color-mix(in_srgb,var(--color-background) 80%,var(--color-brand))] text-slate-50"
+                  "text-slate-50 bg-slate-900/90 shadow-[0_0_0_1px_rgba(129,140,248,0.5)]"
               )}
             >
-              <Icon className="h-4 w-4" />
-              <span>{item.label}</span>
+              {/* Left accent bar when active */}
+              <span
+                className={cn(
+                  "absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full bg-indigo-400/80 opacity-0 transition-opacity",
+                  active && "opacity-100"
+                )}
+              />
+              <div
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-xl border border-slate-800/80 bg-slate-950/60 transition-all group-hover:border-slate-700 group-hover:bg-slate-900/80",
+                  active && "border-indigo-400/70 bg-indigo-500/10"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+              </div>
+              <span className="truncate">{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
       {/* Footer / user mini */}
-      <div className="mt-4 border-t border-slate-900/80 pt-4 text-[0.7rem] text-slate-500">
-        <p>Logged in as</p>
-        <p className="font-medium text-slate-200">you@example.com</p>
+      <div className="mt-4 border-t border-slate-900/80 pt-4">
+        <p className="text-[0.65rem] text-slate-500">Signed in as</p>
+        <p className="text-[0.7rem] font-medium text-slate-200">
+          you@example.com
+        </p>
       </div>
     </aside>
   );
