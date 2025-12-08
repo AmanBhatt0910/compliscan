@@ -6,9 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { Scan } from "@/lib/models/Scan";
 import type { Finding } from "@/lib/scan-engine/scoring";
 
-interface Params {
-  params: { scanId: string };
-}
+type Params = { params: Promise<{ scanId: string }> };
 
 interface ScanWithApp {
   _id: string;
@@ -34,9 +32,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
   try {
     await connectDB();
     const user = await requireUser();
+    const { scanId } = await params;
 
     const scanDoc = (await Scan.findOne({
-      _id: params.scanId,
+      _id: scanId,
       runBy: user.id,
     })
       .populate("app", "name url environment")

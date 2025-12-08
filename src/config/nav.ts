@@ -1,3 +1,4 @@
+// src/config/nav.ts
 import { LayoutDashboard, Globe2, ShieldCheck, Activity } from "lucide-react";
 
 export const sidebarNav = [
