@@ -2,13 +2,68 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ShieldHalf } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { ShieldHalf, LogOut } from "lucide-react";
 import { sidebarNav } from "@/config/nav";
 import { cn } from "@/lib/utils";
 
+interface CurrentUser {
+  id: string;
+  name?: string;
+  email: string;
+  role?: string;
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchUser() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (!res.ok) return;
+
+        const data: { user: CurrentUser | null } = await res.json();
+        if (isMounted) {
+          setUser(data.user);
+        }
+      } catch (err) {
+        console.error("Failed to load current user", err);
+      } finally {
+        if (isMounted) setLoadingUser(false);
+      }
+    }
+
+    fetchUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  async function handleLogout() {
+    try {
+      setLoggingOut(true);
+      await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+      // Refresh and go to login
+      router.push("/login");
+      router.refresh();
+    } catch (err) {
+      console.error("Logout failed", err);
+    } finally {
+      setLoggingOut(false);
+    }
+  }
 
   return (
     <aside className="hidden h-screen w-64 flex-col border-r border-slate-900/80 bg-[radial-gradient(circle_at_top,_#020617_0,_#020617_40%,_#020617_70%,_#000_100%)]/95 px-4 py-4 md:flex">
@@ -81,10 +136,33 @@ export default function Sidebar() {
 
       {/* Footer / user mini */}
       <div className="mt-4 border-t border-slate-900/80 pt-4">
-        <p className="text-[0.65rem] text-slate-500">Signed in as</p>
-        <p className="text-[0.7rem] font-medium text-slate-200">
-          you@example.com
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[0.65rem] text-slate-500">Signed in as</p>
+            <p className="text-[0.7rem] font-medium text-slate-200 truncate">
+              {loadingUser
+                ? "Loading..."
+                : user?.name || user?.email || "Unknown user"}
+            </p>
+            {user?.email && (
+              <p className="text-[0.65rem] text-slate-400 truncate">
+                {user.email}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className={cn(
+              "inline-flex items-center justify-center rounded-full border border-slate-800/80 bg-slate-950/70 px-2.5 py-1 text-[0.6rem] font-medium text-slate-400 transition-colors hover:border-red-500/60 hover:bg-red-500/10 hover:text-red-200",
+              loggingOut && "opacity-60 cursor-not-allowed"
+            )}
+          >
+            <LogOut className="mr-1 h-3 w-3" />
+            {loggingOut ? "Signing out…" : "Sign out"}
+          </button>
+        </div>
       </div>
     </aside>
   );
