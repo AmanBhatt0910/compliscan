@@ -171,7 +171,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden h-screen w-64 flex-col border-r border-slate-900/80 bg-[radial-gradient(circle_at_top,_#020617_0,_#020617_40%,_#020617_70%,_#000_100%)]/95 px-4 py-4 md:flex">
+      <aside className="hidden h-screen w-64 flex-col border-r border-slate-900/80 bg-slate-950 px-4 py-4 md:flex">
         {sidebarBody}
       </aside>
 
@@ -193,7 +193,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         {/* Slide-in panel */}
         <aside
           className={cn(
-            "absolute inset-y-0 left-0 w-64 border-r border-slate-900/80 bg-[radial-gradient(circle_at_top,_#020617_0,_#020617_40%,_#020617_70%,_#000_100%)]/95 px-4 py-4 transform transition-transform",
+            "absolute inset-y-0 left-0 w-64 border-r border-slate-900/80 bg-slate-950 px-4 py-4 transform transition-transform",
             mobileOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
