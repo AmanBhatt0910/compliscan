@@ -2,68 +2,77 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Search, Bell, Globe2, ScanLine } from "lucide-react";
+import { Search, Bell, Globe2, ScanLine, Menu } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { Input } from "@/components/ui/input";
 import type { ScanListItem } from "@/types/api";
 
 interface ActivityItem {
-  type: "app_created" | "scan_run";
+  type: "scan_run";
   title: string;
   createdAt: string;
 }
 
-export default function Topbar() {
+interface TopbarProps {
+  onToggleSidebar?: () => void;
+}
+
+export default function Topbar({ onToggleSidebar }: TopbarProps) {
   const router = useRouter();
   const [showNotif, setShowNotif] = useState(false);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [hasNew, setHasNew] = useState(false);
 
-  // Fetch latest activity on mount
   useEffect(() => {
     async function loadLatest() {
       try {
-        const res = await fetch("/api/scans?limit=5"); // use scans endpoint
+        const res = await fetch("/api/scans");
         if (!res.ok) return;
 
-        const scanData = await res.json();
-
-        const formatted = (scanData as ScanListItem[])
-        .slice(0, 5)
-        .map((s: ScanListItem) => ({
-          type: "scan_run" as const,
+        const raw = (await res.json()) as ScanListItem[];
+        const formatted: ActivityItem[] = raw.slice(0, 5).map((s) => ({
+          type: "scan_run",
           title: `Scan completed on ${s.appName || "Unknown"}`,
           createdAt: new Date(s.createdAt).toLocaleString(),
         }));
 
-        const hasActivity = formatted.length > 0;
-        setHasNew(hasActivity);
         setActivities(formatted);
+        setHasNew(formatted.length > 0);
       } catch (err) {
         console.error("Notifications fetch failed:", err);
       }
     }
+
     loadLatest();
   }, []);
 
   return (
     <header className="flex items-center justify-between gap-3 border-b border-slate-900/80 bg-[color-mix(in_srgb,var(--color-background) 90%,black)] px-4 py-3">
-      
-      {/* Search */}
-      <div className="flex flex-1 items-center gap-2 max-w-md">
-        <div className="relative flex-1">
+      {/* Left section: mobile menu + search */}
+      <div className="flex flex-1 items-center gap-2">
+        {/* Mobile menu */}
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-800/80 bg-slate-950/80 text-slate-400 hover:bg-slate-900/80 hover:text-slate-100 md:hidden"
+          aria-label="Open navigation"
+        >
+          <Menu className="h-4 w-4" />
+        </button>
+
+        {/* Search */}
+        <div className="relative hidden flex-1 max-w-md md:block">
           <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-500" />
           <Input
-            className="h-9 rounded-[999px] bg-slate-950/80 pl-8 text-xs"
+            className="h-9 w-full rounded-[999px] bg-slate-950/80 pl-8 text-xs"
             placeholder="Search apps, scans, findings..."
           />
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Right section: notifications, theme, user chip */}
       <div className="relative flex items-center gap-2">
-        
-        {/* Notification Button */}
+        {/* Notifications */}
         <button
           onClick={() => {
             setShowNotif((prev) => !prev);
@@ -78,7 +87,7 @@ export default function Topbar() {
           )}
         </button>
 
-        {/* Dropdown */}
+        {/* Notifications dropdown */}
         {showNotif && (
           <div className="absolute right-12 top-12 z-50 w-64 rounded-lg border border-slate-700/50 bg-slate-900/95 shadow-xl backdrop-blur-md">
             <div className="p-3 text-xs font-semibold uppercase text-slate-400 tracking-wide">
@@ -96,7 +105,6 @@ export default function Topbar() {
                     key={idx}
                     className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-slate-800/60 transition-colors"
                   >
-                    {/* Icon */}
                     <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-800/80">
                       {a.type === "scan_run" ? (
                         <ScanLine className="h-3.5 w-3.5 text-indigo-300" />
@@ -104,8 +112,6 @@ export default function Topbar() {
                         <Globe2 className="h-3.5 w-3.5 text-emerald-300" />
                       )}
                     </div>
-
-                    {/* Text */}
                     <div className="flex-1 min-w-0">
                       <p className="truncate text-[0.7rem] text-slate-100">
                         {a.title}
@@ -132,12 +138,12 @@ export default function Topbar() {
         )}
 
         <ThemeToggle />
-        <div className="h-8 w-px bg-slate-800" />
+        <div className="hidden h-8 w-px bg-slate-800 md:block" />
 
-        {/* Dummy user preview for now (we already added real user in Sidebar) */}
-        <div className="flex items-center gap-2">
+        {/* User chip (kept generic – detailed user is in sidebar) */}
+        <div className="hidden items-center gap-2 sm:flex">
           <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-[var(--color-brand)] to-[var(--color-accent)]" />
-          <div className="hidden text-xs leading-tight sm:block">
+          <div className="hidden text-xs leading-tight md:block">
             <p className="font-medium text-slate-100">Security Analyst</p>
             <p className="text-[0.6rem] text-slate-500">CompliScan</p>
           </div>

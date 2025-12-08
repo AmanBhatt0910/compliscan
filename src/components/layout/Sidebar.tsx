@@ -1,10 +1,9 @@
-// src/components/layout/Sidebar.tsx
 "use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ShieldHalf, LogOut } from "lucide-react";
+import { ShieldHalf, LogOut, X } from "lucide-react";
 import { sidebarNav } from "@/config/nav";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +14,12 @@ interface CurrentUser {
   role?: string;
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobileOpen: boolean;
+  onMobileClose: () => void;
+}
+
+export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -30,7 +34,6 @@ export default function Sidebar() {
       try {
         const res = await fetch("/api/auth/me");
         if (!res.ok) return;
-
         const data: { user: CurrentUser | null } = await res.json();
         if (isMounted) {
           setUser(data.user);
@@ -52,10 +55,7 @@ export default function Sidebar() {
   async function handleLogout() {
     try {
       setLoggingOut(true);
-      await fetch("/api/auth/logout", {
-        method: "POST",
-      });
-      // Refresh and go to login
+      await fetch("/api/auth/logout", { method: "POST" });
       router.push("/login");
       router.refresh();
     } catch (err) {
@@ -65,8 +65,8 @@ export default function Sidebar() {
     }
   }
 
-  return (
-    <aside className="hidden h-screen w-64 flex-col border-r border-slate-900/80 bg-[radial-gradient(circle_at_top,_#020617_0,_#020617_40%,_#020617_70%,_#000_100%)]/95 px-4 py-4 md:flex">
+  const sidebarBody = (
+    <>
       {/* Logo + workspace */}
       <div className="mb-6 flex items-center justify-between gap-2 px-1">
         <div className="flex items-center gap-2">
@@ -94,7 +94,7 @@ export default function Sidebar() {
         Navigation
       </p>
 
-      {/* Nav */}
+      {/* Nav items */}
       <nav className="flex-1 space-y-1">
         {sidebarNav.map((item) => {
           const Icon = item.icon;
@@ -112,6 +112,7 @@ export default function Sidebar() {
                 active &&
                   "text-slate-50 bg-slate-900/90 shadow-[0_0_0_1px_rgba(129,140,248,0.5)]"
               )}
+              onClick={onMobileClose}
             >
               {/* Left accent bar when active */}
               <span
@@ -164,6 +165,51 @@ export default function Sidebar() {
           </button>
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside className="hidden h-screen w-64 flex-col border-r border-slate-900/80 bg-[radial-gradient(circle_at_top,_#020617_0,_#020617_40%,_#020617_70%,_#000_100%)]/95 px-4 py-4 md:flex">
+        {sidebarBody}
+      </aside>
+
+      {/* Mobile sidebar overlay */}
+      <div
+        className={cn(
+          "fixed inset-0 z-40 md:hidden transition-opacity",
+          mobileOpen
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0"
+        )}
+      >
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/60"
+          onClick={onMobileClose}
+        />
+
+        {/* Slide-in panel */}
+        <aside
+          className={cn(
+            "absolute inset-y-0 left-0 w-64 border-r border-slate-900/80 bg-[radial-gradient(circle_at_top,_#020617_0,_#020617_40%,_#020617_70%,_#000_100%)]/95 px-4 py-4 transform transition-transform",
+            mobileOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          <div className="mb-3 flex items-center justify-end md:hidden">
+            <button
+              type="button"
+              onClick={onMobileClose}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-800/80 bg-slate-950/80 text-slate-400 hover:bg-slate-900/80 hover:text-slate-100"
+              aria-label="Close sidebar"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          {sidebarBody}
+        </aside>
+      </div>
+    </>
   );
 }
